@@ -1,0 +1,1 @@
+print("Ixh werde euch alle besiegen!")
