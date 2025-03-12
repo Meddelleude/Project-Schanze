@@ -1,15 +1,17 @@
-print("Ihr werdet mich niemals besiegen!")
-eingabe = input("Gebe +,-,*,/ an: ")
-a = float(input("Zahl 1: "))
-b = float(input("Zahl 2: "))
+import pandas as pd
+import matplotlib.pyplot as plt
 
-if eingabe=="+":
-    print(a+b)
-elif eingabe == "-":
-    print(a-b)
-elif eingabe == "*":
-    print(a*b)
-elif eingabe == "/":
-    print(round(a/b,2))
-else:
-    print("Falsche eingabe")
+raw_data = pd.read_csv('lead1.0-small.csv')
+print("Ihr werdet mich niemals besiegen!")
+
+# print(raw_data.head)
+print(raw_data.dtypes)
+# print(raw_data.sample)
+
+raw_data_copy = raw_data.copy()
+
+
+raw_data_copy.dropna(inplace=True)
+print(raw_data_copy.isna().sum())
+plt.figure(figsize=(18, 4))
+print(raw_data_copy['meter_reading'].plot(marker='o'))
