@@ -119,6 +119,25 @@ def anomaly(df):
     anomaly_counts_sorted.to_csv("anomaly_counts_sorted.txt", sep=" ")
     print(anomaly_counts_sorted)
 
+def count_building_id_and_anomalies(df):
+    # Zählen der building_id Vorkommen
+    id_counts = df['building_id'].value_counts()
+    
+    # Zählen der Anomalien für jede building_id
+    anomaly_counts = df[df['anomaly'] == 1].groupby('building_id').size()
+    
+    # Kombinieren der beiden Zählungen in einem DataFrame
+    combined_counts = pd.DataFrame({
+        'building_id_count': id_counts,
+        'anomaly_count': anomaly_counts
+    })
+    
+    # Sortieren nach 'building_id_count' in absteigender Reihenfolge
+    combined_counts_sorted = combined_counts.sort_values(by='building_id_count', ascending=False)
+    combined_counts_sorted.to_csv("combined_counts.txt", sep=" ")
+    return combined_counts
+
 #run(raw_data_copy)
-run_all_in_one(raw_data_copy)
+#run_all_in_one(raw_data_copy)
 #anomaly(raw_data_copy)
+count_building_id_and_anomalies(raw_data_copy)
