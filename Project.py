@@ -1,22 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 raw_data = pd.read_csv('lead1.0-small.csv')
-#print("Ihr werdet mich niemals besiegen!")
-
-#print(raw_data.head)
-#print(raw_data.dtypes)
-#print(raw_data.sample)
-
 raw_data_copy = raw_data.copy()
-
-
 raw_data_copy.dropna(inplace=True)
-#print(raw_data_copy.head)
-#print(raw_data_copy.isna().sum())
-#plt.figure(figsize=(18, 4))
-#print(raw_data_copy['meter_reading'].plot(marker='o'))
-#plt.show()
+raw_data_copy['timestamp'] = pd.to_datetime(raw_data_copy['timestamp'])
 
 def count_building_ids_dict(df):
     
@@ -26,5 +15,110 @@ def count_building_ids_dict(df):
     id_counts = df['building_id'].value_counts()
     return id_counts
 
-print(count_building_ids_dict(raw_data_copy))
+def write_as_file(df):
+    with open("count.txt", "w") as file:
+        for building_id, count in df.items(): 
+            file.write(f"{building_id} {count}\n")
 
+def filter_most_common_id(raw_data_copy, id_counts):
+    for i in range(6):
+        target_id = id_counts.index[i]
+        
+        filtered_df = raw_data_copy[raw_data_copy['building_id'] == target_id]
+
+        filtered_df.to_csv(f"filtered_data_{i+1}.txt", sep=" ", index=False)
+    
+    return filtered_df
+
+def build_plot(raw_data_copy, id_counts):
+    for i in range(6):
+        target_id = id_counts.index[i]
+        
+        filtered_df = raw_data_copy[raw_data_copy['building_id'] == target_id]
+        plt.figure(figsize=(10, 6)) 
+        plt.plot(filtered_df['timestamp'], filtered_df['meter_reading'], label='Meter Reading', color='blue')
+
+        plt.title(f'Meter Reading Over Time {target_id}')  
+        plt.xlabel('Timestamp')  
+        plt.ylabel('Meter Reading')  
+        plt.xticks(rotation=45)  
+        plt.grid(True)  
+
+        plt.savefig(f'meter_reading_plot{i+1}.png', bbox_inches='tight')
+
+def run(df):
+    id_counts = df['building_id'].value_counts()
+    for i in range(6):
+        target_id = id_counts.index[i]
+        
+        filtered_df = raw_data_copy[raw_data_copy['building_id'] == target_id]
+
+        filtered_df.to_csv(f"filtered_data_{i+1}.txt", sep=" ", index=False)
+        plt.figure(figsize=(15, 6))  
+        sns.lineplot(x=filtered_df['timestamp'], y=filtered_df['meter_reading'], label='Meter Reading', color='blue', linewidth=0.5)
+
+        # Titel und Achsenbeschriftungen
+        plt.title(f'Meter Reading Over Time {target_id}')  
+        plt.xlabel('Timestamp')  
+        plt.ylabel('Meter Reading')  
+        plt.xticks(rotation=45)  # Drehen der X-Achsen-Beschriftungen
+        plt.grid(True)  
+
+        # Speichern des Plots
+        plt.savefig(f'meter_reading_plot_{target_id}.png', bbox_inches='tight') 
+
+def run_all_in_one(df):
+    # Zähle die Häufigkeit der building_id
+    id_counts = df['building_id'].value_counts()
+
+    # Wähle eine Farbpalette aus Seaborn
+    palette = sns.color_palette("Set2", n_colors=6)  # Hier wählst du eine Farbpalette aus
+
+    plt.figure(figsize=(30, 6))  # Erstelle das große Diagramm für alle Linien
+
+    # Schleife über die ersten 6 häufigsten building_ids
+    for i in range(6):
+        target_id = id_counts.index[i]  # Hol dir die building_id des aktuellen Rangs
+
+        # Filtere die Daten für diese building_id
+        filtered_df = df[df['building_id'] == target_id]
+
+        # Plot der Linie für diese building_id mit einer einzigartigen Farbe aus der Palette
+        sns.lineplot(x=filtered_df['timestamp'], y=filtered_df['meter_reading'], label=f'ID {target_id}', color=palette[i], linewidth=0.5)
+
+    # Titel und Achsenbeschriftungen
+    plt.title('Meter Reading Over Time for Different Building IDs')  
+    plt.xlabel('Timestamp')  
+    plt.ylabel('Meter Reading')  
+    plt.xticks(rotation=45)  # Drehen der X-Achsen-Beschriftungen
+    plt.grid(True)  
+
+    # Füge eine Legende hinzu
+    plt.legend(title="Building ID", loc="upper left", bbox_to_anchor=(1, 1))
+
+    # Speichern des kombinierten Plots
+    plt.savefig('combined_meter_reading_plot.png', bbox_inches='tight')
+
+    # Zeige den Plot an
+    plt.show()
+
+def stunden_im_jahr():
+    jahr= int(input("Bitte gibt das Jahr ein: "))
+    if(jahr%4==0 & jahr%100!=0):
+        stunden = 24*366
+    elif(jahr%400==0):
+         stunden = 24*366
+    else:
+        stunden = 24*365
+    print(stunden)
+
+def anomaly(df):
+    anomaly_counts = df.groupby('building_id')['anomaly'].value_counts().unstack(fill_value=0)
+    anomaly_counts.to_csv("anomaly_counts.txt", sep=" ")
+    anomaly_counts_sorted = anomaly_counts.sort_values(by=1, ascending=False)
+    anomaly_counts_sorted.to_csv("anomaly_counts_sorted.txt", sep=" ")
+    print(anomaly_counts_sorted)
+
+#run(raw_data_copy)
+run_all_in_one(raw_data_copy)
+#anomaly(raw_data_copy)
