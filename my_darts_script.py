@@ -1,5 +1,7 @@
 import pandas as pd
 from darts import TimeSeries
+from darts.models import NBEATSModel
+from darts.metrics import mae, rmse
 
 
 df = pd.read_csv("data_set_1.csv", parse_dates=["timestamp"])
@@ -23,3 +25,17 @@ train, val = series.split_after(0.8)
 
 # Modell trainieren
 model.fit(train, epochs=50, verbose=True)
+
+# Vorhersage erzeugen
+forecast = model.predict(n=24)
+
+# Entnormieren, falls nötig
+forecast = scaler.inverse_transform(forecast)
+
+# Plotten der Vorhersage
+series.plot(label="Echte Werte")
+forecast.plot(label="Vorhersage")
+
+# Fehler berechnen
+print("MAE:", mae(val, model.predict(len(val))))
+print("RMSE:", rmse(val, model.predict(len(val))))
