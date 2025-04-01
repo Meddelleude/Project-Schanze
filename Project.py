@@ -145,10 +145,13 @@ def only_anomaly(input_file):
     output_file = f"anomalies_building_{building_id}.txt"
     df_filtered.to_csv(output_file, sep=" ", index=False)
 
-
+def to_csv(input):
+    df = pd.read_csv(input, sep=" ", engine="python")
+    df.to_csv("data_set_1.csv", index=False)
 
 #run(raw_data_copy)
 #run_all_in_one(raw_data_copy)
 #anomaly(raw_data_copy)
 #count_building_id_and_anomalies(raw_data_copy)
-only_anomaly("filtered_data_6.txt")
+#only_anomaly("filtered_data_6.txt")
+to_csv("filtered_data_1.txt")
