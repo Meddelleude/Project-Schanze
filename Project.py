@@ -137,7 +137,18 @@ def count_building_id_and_anomalies(df):
     combined_counts_sorted.to_csv("combined_counts.txt", sep=" ")
     return combined_counts
 
+def only_anomaly(input_file):
+    
+    df = pd.read_csv(input_file, sep=" ", engine="python")  
+    df_filtered = df[df['anomaly'] == 1] 
+    building_id = df_filtered['building_id'].iloc[0]
+    output_file = f"anomalies_building_{building_id}.txt"
+    df_filtered.to_csv(output_file, sep=" ", index=False)
+
+
+
 #run(raw_data_copy)
 #run_all_in_one(raw_data_copy)
 #anomaly(raw_data_copy)
-count_building_id_and_anomalies(raw_data_copy)
+#count_building_id_and_anomalies(raw_data_copy)
+only_anomaly("filtered_data_6.txt")
