@@ -21,22 +21,22 @@ train, val = series.split_after(0.8)
 
 # Early Stopping konfigurieren
 early_stopping = pl.callbacks.EarlyStopping(
-    monitor="val_loss", patience=5, mode="min"
+    monitor="val_loss", patience=20, mode="min"
 )
 
 # NBEATS-Modell initialisieren
 model = NBEATSModel(
-    input_chunk_length=48,
-    output_chunk_length=24,
+    input_chunk_length=1500,
+    output_chunk_length=200,
     random_state=42,
-    pl_trainer_kwargs={"callbacks": [early_stopping]},
+    pl_trainer_kwargs={"callbacks": [early_stopping],"accelerator": "gpu","devices": 1},
 )
 
 # Modell trainieren
-model.fit(train, val_series=val, epochs=10, verbose=True)
+model.fit(train, val_series=val, epochs=50, verbose=True)
 
 # Vorhersage erzeugen
-forecast = model.predict(n=1680)
+forecast = model.predict(n=1756)
 forecast = scaler.inverse_transform(forecast)  # Zurückskalieren
 
 # Plots erstellen

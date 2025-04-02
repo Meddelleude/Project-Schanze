@@ -155,3 +155,4 @@ def to_csv(input):
 #count_building_id_and_anomalies(raw_data_copy)
 #only_anomaly("filtered_data_6.txt")
 #to_csv("filtered_data_1.txt")
+stunden_im_jahr()
