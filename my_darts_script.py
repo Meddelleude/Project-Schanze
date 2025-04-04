@@ -18,7 +18,8 @@ covariate_series = TimeSeries.from_dataframe(df, "timestamp", "anomaly")
 
 # Skalierung anwenden
 scaler = Scaler()
-covariate_scaled = scaler.fit_transform(covariate_series)
+#covariate_scaled = scaler.fit_transform(covariate_series)
+covariate_scaled = covariate_series
 series = scaler.fit_transform(series)
 
 # Trainings- und Testdaten aufteilen
@@ -27,13 +28,13 @@ train, val = series.split_after(0.8)
 
 # Early Stopping konfigurieren
 early_stopping = pl.callbacks.EarlyStopping(
-    monitor="val_loss", patience=5, mode="min"
+    monitor="val_loss", patience=10, mode="min"
 )
 
 # NBEATS-Modell initialisieren
 model = NBEATSModel(
-    input_chunk_length=1000,
-    output_chunk_length=200,
+    input_chunk_length=400,
+    output_chunk_length=80,
     random_state=42,
     pl_trainer_kwargs={"callbacks": [early_stopping]},
 )
@@ -44,7 +45,7 @@ model.fit(
     past_covariates=train_cov,
     val_series=val,
     val_past_covariates=val_cov,
-    epochs=1,
+    epochs=50,
     verbose=True
 )
 
