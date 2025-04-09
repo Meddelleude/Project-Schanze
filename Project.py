@@ -46,6 +46,32 @@ def build_plot(raw_data_copy, id_counts):
 
         plt.savefig(f'meter_reading_plot{i+1}.png', bbox_inches='tight')
 
+def filter_id_out(raw_data_copy, id):
+    filtered_df = raw_data_copy[raw_data_copy['building_id'] == id]
+    filtered_df.to_csv(f"filtered_data_{id}.csv", sep=",", index=False)
+    df = pd.read_csv(f"filtered_data_{id}.csv")
+
+    # 2. Zeitstempel parsen und als Index setzen
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df.set_index('timestamp', inplace=True)
+
+    # 3. Vollständigen Zeitindex erzeugen (für ein ganzes Jahr, stündlich)
+    start = df.index.min()
+    end = df.index.max()
+    voller_index = pd.date_range(start=start, end=end, freq='H')
+
+    # 4. DataFrame auf vollständigen Zeitindex ausrichten
+    df = df.reindex(voller_index)
+
+    # 5. Fehlende Werte anzeigen (sollte jetzt die 3 NaNs zeigen)
+    print("Fehlende Werte nach Reindexing:\n", df.isna().sum())
+
+    # 6. Interpolation der fehlenden Werte (zeitlich)
+    df_interpoliert = df.interpolate(method='time')
+    df_interpoliert.index.name = 'timestamp'
+    # 7. Optional: Ergebnis speichern
+    df_interpoliert.to_csv(f"filtered_data_{id}.csv")
+
 def run(df):
     id_counts = df['building_id'].value_counts()
     for i in range(6):
@@ -155,4 +181,5 @@ def to_csv(input):
 #count_building_id_and_anomalies(raw_data_copy)
 #only_anomaly("filtered_data_6.txt")
 #to_csv("filtered_data_1.txt")
-stunden_im_jahr()
+#stunden_im_jahr()
+filter_id_out(raw_data_copy, 335)

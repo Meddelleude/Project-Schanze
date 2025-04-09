@@ -9,7 +9,7 @@ from datetime import datetime
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 # Daten laden
-df = pd.read_csv("data_set_1.csv", parse_dates=["timestamp"])
+df = pd.read_csv("filtered_data_335.csv", parse_dates=["timestamp"])
 
 # Zeitreihen-Objekt erstellen
 series = TimeSeries.from_dataframe(df, "timestamp", "meter_reading")
@@ -33,8 +33,8 @@ early_stopping = pl.callbacks.EarlyStopping(
 
 # NBEATS-Modell initialisieren
 model = NBEATSModel(
-    input_chunk_length=400,
-    output_chunk_length=80,
+    input_chunk_length=500,
+    output_chunk_length=100,
     random_state=42,
     pl_trainer_kwargs={"callbacks": [early_stopping]},
 )
