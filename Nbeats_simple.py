@@ -12,22 +12,24 @@ timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 # --- Daten laden ---
 df = pd.read_csv("filtered_data_335.csv", parse_dates=["timestamp"])
 
-# --- Zeitreihen erstellen ---
+# Zeitreihen-Objekte erstellen
 series = TimeSeries.from_dataframe(df, "timestamp", "meter_reading")
-series_original = series.copy()  # für späteren Vergleich
-covariate_series = TimeSeries.from_dataframe(df, "timestamp", "anomaly")
+series_original = series.copy()  # für später zum Plotten
 
-# --- Skalierung der Zielvariable ---
+# Skalierung
 scaler = Scaler()
 series = scaler.fit_transform(series)
 
-# --- Split ---
+# Trainings- und Validierungsdaten aufteilen
 train, val = series.split_after(0.8)
-train_cov, val_cov = covariate_series.split_after(0.8)
+val_unscaled = scaler.inverse_transform(val)
 
-# --- Modell mit EarlyStopping ---
-early_stopping = EarlyStopping(monitor="val_loss", patience=10, mode="min")
+# --- EarlyStopping Setup ---
+early_stopping = EarlyStopping(
+    monitor="val_loss", patience=10, mode="min"
+)
 
+# --- Modell ---
 model = NBEATSModel(
     input_chunk_length=336,
     output_chunk_length=48,
@@ -38,50 +40,47 @@ model = NBEATSModel(
 # --- Training ---
 model.fit(
     series=train,
-    past_covariates=train_cov,
     val_series=val,
-    val_past_covariates=val_cov,
     epochs=50,
-    verbose=True,
+    verbose=True
 )
 
 # --- Realistische Vorhersage mit historical_forecasts ---
 forecast_scaled = model.historical_forecasts(
     series,
-    past_covariates=covariate_series,
-    start=0.8,              # ab Validierungsbereich
+    start=0.8,                    # ab dem Validierungszeitraum
     forecast_horizon=1,
     stride=1,
     retrain=False,
     verbose=True
 )
 
-# --- Zurückskalieren (Forecast + Ground Truth) ---
+# Skalierung zurücksetzen
 forecast = scaler.inverse_transform(forecast_scaled)
-val_unscaled = scaler.inverse_transform(val)
 
 # --- Fehlerberechnung ---
 mae_val = mae(val_unscaled, forecast)
-rmse_val = rmse(val_unscaled, forecast)
 mean_val = val_unscaled.values().mean()
 mae_percent = (mae_val / mean_val) * 100
+rmse_val = rmse(val_unscaled, forecast)
 
-# --- Ergebnisse anzeigen ---
 print(f"MAE: {mae_val:.4f}")
 print(f"RMSE: {rmse_val:.4f}")
 print(f"Prozentualer MAE: {mae_percent:.2f}%")
 
 # --- Plot ---
+import matplotlib.pyplot as plt
+
 fig, ax = plt.subplots(figsize=(16, 8))
 series_original.plot(label="Echte Werte", ax=ax, linewidth=0.5)
 forecast.plot(label="Vorhersage", ax=ax, linewidth=0.5)
 ax.legend()
 ax.set_xlabel("Zeit", fontsize=12)
 ax.set_ylabel("Messwerte", fontsize=12)
-plt.title(f"forecast_plot_{timestamp}, MAE: {mae_val:.4f}, MAE%: {mae_percent:.2f}%, RMSE: {rmse_val:.4f}")
-plt.savefig(f"Forecast/forecast_plot_{timestamp}.png")
+plt.title(f"forecast_plot_simple{timestamp}, MAE: {mae_val:.4f}, RMSE: {rmse_val:.4f}, MAE%: {mae_percent:.2f}, ICL: {model.input_chunk_length}, OCL: {model.output_chunk_length}")
+plt.savefig(f"Forecast/forecast_plot_simple{timestamp}.png")
 plt.show()
 
-# --- Forecast als CSV speichern ---
+# --- Forecast als CSV ---
 forecast_df = forecast.pd_dataframe()
 forecast_df.to_csv(f"Forecast/forecast_data_{timestamp}.csv", index=True)
