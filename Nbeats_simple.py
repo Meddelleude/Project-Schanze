@@ -10,7 +10,7 @@ from datetime import datetime
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 # --- Daten laden ---
-df = pd.read_csv("filtered_data_335.csv", parse_dates=["timestamp"])
+df = pd.read_csv("data_set_1.csv", parse_dates=["timestamp"])
 
 # Zeitreihen-Objekte erstellen
 series = TimeSeries.from_dataframe(df, "timestamp", "meter_reading")

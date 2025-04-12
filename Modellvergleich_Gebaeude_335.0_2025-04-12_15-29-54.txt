@@ -1,0 +1,10 @@
+Modellvergleich für Gebäude 335.0:
+
+ohne Anomalie:
+- MAE:  104.5619
+- MAPE: 36.08%
+
+mit Anomalie:
+- MAE:  94.8235
+- MAPE: 30.39%
+
