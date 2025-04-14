@@ -153,7 +153,7 @@ def count_building_id_and_anomalies(df):
 
 def only_anomaly(input_file):
     
-    df = pd.read_csv(input_file, sep=" ", engine="python")  
+    df = pd.read_csv(input_file, sep=",", engine="python")  
     df_filtered = df[df['anomaly'] == 1] 
     building_id = df_filtered['building_id'].iloc[0]
     output_file = f"anomalies_building_{building_id}.txt"
@@ -167,7 +167,7 @@ def to_csv(input):
 #run_all_in_one(raw_data_copy)
 #anomaly(raw_data_copy)
 #count_building_id_and_anomalies(raw_data_copy)
-#only_anomaly("filtered_data_6.txt")
+#only_anomaly("Filtered_data/filtered_data_439.csv")
 #to_csv("filtered_data_1.txt")
 #stunden_im_jahr()
 #plot_one_id(raw_data_copy, 439)

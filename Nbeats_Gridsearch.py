@@ -23,8 +23,8 @@ train_cov, val_cov = covariate_series.split_after(0.8)
 
 early_stopping = EarlyStopping(monitor="val_loss", patience=10, mode="min")
 
-input_chunk_lengths = [168, 336, 672]  # 7 Tage, 14 Tage, 28 Tage
-output_chunk_lengths = [24, 48]       # eine oder zwei Tage Vorhersage
+input_chunk_lengths = [168, 336, 672]  
+output_chunk_lengths = [24, 48]       
 
 best_mae = float('inf')
 best_params = {}

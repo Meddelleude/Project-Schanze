@@ -8,11 +8,10 @@ from pytorch_lightning.callbacks import EarlyStopping
 from datetime import datetime
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
 df = pd.read_csv("Filtered_data/filtered_data_1147.csv", parse_dates=["timestamp"])
 
 series = TimeSeries.from_dataframe(df, "timestamp", "meter_reading")
-series_original = series.copy()  # für später zum Plotten
+series_original = series.copy()  
 
 scaler = Scaler()
 series = scaler.fit_transform(series)
