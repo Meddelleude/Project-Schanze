@@ -48,8 +48,8 @@ def build_plot(raw_data_copy, id_counts):
 
 def filter_id_out(raw_data_copy, id):
     filtered_df = raw_data_copy[raw_data_copy['building_id'] == id]
-    filtered_df.to_csv(f"filtered_data_{id}.csv", sep=",", index=False)
-    df = pd.read_csv(f"filtered_data_{id}.csv")
+    filtered_df.to_csv(f"Filtered_data/filtered_data_{id}.csv", sep=",", index=False)
+    df = pd.read_csv(f"Filtered_data/filtered_data_{id}.csv")
 
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df.set_index('timestamp', inplace=True)
@@ -106,6 +106,20 @@ def run_all_in_one(df):
     plt.legend(title="Building ID", loc="upper left", bbox_to_anchor=(1, 1))
     plt.savefig('combined_meter_reading_plot.png', bbox_inches='tight')
     plt.show()
+def plot_one_id(df, id):
+    
+    plt.figure(figsize=(30, 6))
+    filtered_df = df[df['building_id'] == id]
+    sns.lineplot(x=filtered_df['timestamp'], y=filtered_df['meter_reading'], label=f'ID {id}', linewidth=0.5)
+    plt.title('Meter Reading Over Time for Different Building IDs')  
+    plt.xlabel('Timestamp')  
+    plt.ylabel('Meter Reading')  
+    plt.xticks(rotation=45)  
+    plt.grid(True)  
+
+    plt.legend(title="Building ID", loc="upper left", bbox_to_anchor=(1, 1))
+    plt.savefig(f'Filtered_data/meter_reading_plot_{id}.png', bbox_inches='tight')
+    plt.show()
 
 def stunden_im_jahr():
     jahr= int(input("Bitte gibt das Jahr ein: "))
@@ -156,4 +170,5 @@ def to_csv(input):
 #only_anomaly("filtered_data_6.txt")
 #to_csv("filtered_data_1.txt")
 #stunden_im_jahr()
-filter_id_out(raw_data_copy, 118)
+#plot_one_id(raw_data_copy, 439)
+#filter_id_out(raw_data_copy, 439)
