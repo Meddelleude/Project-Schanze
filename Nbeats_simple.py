@@ -8,7 +8,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from datetime import datetime
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-df = pd.read_csv("Filtered_data/filtered_data_1147.csv", parse_dates=["timestamp"])
+df = pd.read_csv("Filtered_data/filtered_data_439.csv", parse_dates=["timestamp"])
 
 series = TimeSeries.from_dataframe(df, "timestamp", "meter_reading")
 series_original = series.copy()  

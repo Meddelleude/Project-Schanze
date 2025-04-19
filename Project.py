@@ -106,6 +106,7 @@ def run_all_in_one(df):
     plt.legend(title="Building ID", loc="upper left", bbox_to_anchor=(1, 1))
     plt.savefig('combined_meter_reading_plot.png', bbox_inches='tight')
     plt.show()
+    
 def plot_one_id(df, id):
     
     plt.figure(figsize=(30, 6))
@@ -163,6 +164,22 @@ def to_csv(input):
     df = pd.read_csv(input, sep=" ", engine="python")
     df.to_csv("data_set_1.csv", index=False)
 
+def anomalie_ersetzen():
+    df = pd.read_csv("Filtered_data/filtered_data_439.csv", parse_dates=["timestamp"])
+    df.set_index("timestamp", inplace=True)
+
+    # Nur die "kaputten" Werte als NaN markieren
+    df.loc[df["anomaly"] == 1, "meter_reading"] = pd.NA
+
+    # Interpolieren der NaN-Werte
+    df["meter_reading"] = df["meter_reading"].interpolate(method='time', limit_direction='both')
+
+    # Anomaly-Flag auf 0 setzen (optional, wenn du die Flags auch zurücksetzen willst)
+    df["anomaly"] = 0
+
+    # Speichern (optional)
+    df.to_csv("id439/anomalien_entfernt.csv")
+
 #run(raw_data_copy)
 #run_all_in_one(raw_data_copy)
 #anomaly(raw_data_copy)
@@ -172,3 +189,4 @@ def to_csv(input):
 #stunden_im_jahr()
 #plot_one_id(raw_data_copy, 439)
 #filter_id_out(raw_data_copy, 439)
+anomalie_ersetzen()
