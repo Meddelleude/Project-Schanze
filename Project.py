@@ -165,7 +165,7 @@ def to_csv(input):
     df.to_csv("data_set_1.csv", index=False)
 
 def anomalie_ersetzen():
-    df = pd.read_csv("Filtered_data/filtered_data_439.csv", parse_dates=["timestamp"])
+    df = pd.read_csv("Filtered_data/filtered_data_335.csv", parse_dates=["timestamp"])
     df.set_index("timestamp", inplace=True)
 
     # Nur die "kaputten" Werte als NaN markieren
@@ -178,7 +178,7 @@ def anomalie_ersetzen():
     df["anomaly"] = 0
 
     # Speichern (optional)
-    df.to_csv("id439/anomalien_entfernt.csv")
+    df.to_csv("id335/anomalien_entfernt.csv")
 
 #run(raw_data_copy)
 #run_all_in_one(raw_data_copy)
