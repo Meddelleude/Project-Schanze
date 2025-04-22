@@ -1,0 +1,53 @@
+Modellvergleich für Gebäude 121
+========================================
+
+10% ersetzte Anomalien:
+- MAE:          41.0036
+- RMSE:         71.8156
+- MAE (%):      8.07 %
+
+20% ersetzte Anomalien:
+- MAE:          39.8058
+- RMSE:         74.8378
+- MAE (%):      7.83 %
+
+30% ersetzte Anomalien:
+- MAE:          39.4492
+- RMSE:         69.7009
+- MAE (%):      7.76 %
+
+40% ersetzte Anomalien:
+- MAE:          40.0874
+- RMSE:         63.7963
+- MAE (%):      7.88 %
+
+50% ersetzte Anomalien:
+- MAE:          41.4470
+- RMSE:         70.8805
+- MAE (%):      8.13 %
+
+60% ersetzte Anomalien:
+- MAE:          36.6469
+- RMSE:         63.1285
+- MAE (%):      7.20 %
+
+70% ersetzte Anomalien:
+- MAE:          37.9748
+- RMSE:         68.4071
+- MAE (%):      7.46 %
+
+80% ersetzte Anomalien:
+- MAE:          36.1533
+- RMSE:         60.3366
+- MAE (%):      7.08 %
+
+90% ersetzte Anomalien:
+- MAE:          35.2496
+- RMSE:         55.4348
+- MAE (%):      6.78 %
+
+100% ersetzte Anomalien:
+- MAE:          15.9057
+- RMSE:         20.2310
+- MAE (%):      2.97 %
+

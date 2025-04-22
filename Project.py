@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 raw_data = pd.read_csv('lead1.0-small.csv')
 raw_data_copy = raw_data.copy()
@@ -179,6 +180,37 @@ def anomalie_ersetzen():
 
     # Speichern (optional)
     df.to_csv("id335/anomalien_entfernt.csv")
+def anomalie_anteile_erstellen():
+    df_original  = pd.read_csv("id121/Daten/filtered_data_121.csv", parse_dates=["timestamp"])
+    df_original.set_index("timestamp", inplace=True)
+
+    # Alle Indizes mit anomaly == 1
+    anomalie_indices = df_original[df_original["anomaly"] == 1].index
+
+    # Schleife über 10%-Schritte (10 bis 100)
+    for prozent in range(10, 101, 10):
+        df = df_original.copy()
+
+        # Anzahl zu ersetzender Anomalien
+        n = int(len(anomalie_indices) * (prozent / 100))
+
+        # Zufällige Auswahl
+        ersatz_indices = np.random.choice(anomalie_indices, size=n, replace=False)
+
+        # Werte auf NaN setzen
+        df.loc[ersatz_indices, "meter_reading"] = pd.NA
+
+        # Interpolation
+        df["meter_reading"] = df["meter_reading"].interpolate(method="time", limit_direction="both")
+
+        # Optional: Flag zurücksetzen
+        df.loc[ersatz_indices, "anomaly"] = 0
+
+        # Datei speichern
+        df.to_csv(f"anomalien_ersetzt_{prozent}prozent.csv")
+        print(f"{prozent}% ersetzt – Datei gespeichert: anomalien_ersetzt_{prozent}prozent.csv")
+
+
 
 #run(raw_data_copy)
 #run_all_in_one(raw_data_copy)
@@ -189,4 +221,5 @@ def anomalie_ersetzen():
 #stunden_im_jahr()
 #plot_one_id(raw_data_copy, 439)
 #filter_id_out(raw_data_copy, 439)
-anomalie_ersetzen()
+#anomalie_ersetzen()
+anomalie_anteile_erstellen()
