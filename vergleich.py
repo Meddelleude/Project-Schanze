@@ -13,7 +13,7 @@ for prozent in range(10, 101, 10):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Datei laden
-    file_path = f"id121/Daten/anomalien_ersetzt_{prozent}prozent.csv"
+    file_path = f"id118/Daten3/anomalien_ersetzt_{prozent}prozent.csv"
     df = pd.read_csv(file_path, parse_dates=["timestamp"])
 
     if building_id is None:
@@ -62,7 +62,7 @@ for prozent in range(10, 101, 10):
 
 # Bericht speichern
 gesamtbericht = f"Modellvergleich für Gebäude {building_id}\n" + "="*40 + "\n\n" + bericht
-filename = f"Forecast/Modellvergleich_Building_{building_id}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
+filename = f"Forecast/Modellvergleich_daten3_Building_{building_id}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
 
 with open(filename, "w") as f:
     f.write(gesamtbericht)

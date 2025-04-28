@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import os
+import random
 
 raw_data = pd.read_csv('lead1.0-small.csv')
 raw_data_copy = raw_data.copy()
@@ -180,6 +182,7 @@ def anomalie_ersetzen():
 
     # Speichern (optional)
     df.to_csv("id335/anomalien_entfernt.csv")
+
 def anomalie_anteile_erstellen():
     df_original  = pd.read_csv("id121/Daten/filtered_data_121.csv", parse_dates=["timestamp"])
     df_original.set_index("timestamp", inplace=True)
@@ -207,9 +210,66 @@ def anomalie_anteile_erstellen():
         df.loc[ersatz_indices, "anomaly"] = 0
 
         # Datei speichern
-        df.to_csv(f"anomalien_ersetzt_{prozent}prozent.csv")
+        df.to_csv(f"id121/Daten/anomalien_ersetzt_{prozent}prozent.csv")
         print(f"{prozent}% ersetzt – Datei gespeichert: anomalien_ersetzt_{prozent}prozent.csv")
 
+def remove_anomaly_clusters(input_file, output_folder, cluster_gap_hours=2, modus='rückwärts'):
+    # Sicherstellen, dass Ausgabeordner existiert
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Daten laden
+    df = pd.read_csv(input_file, parse_dates=['timestamp'])
+    df.set_index('timestamp', inplace=True)  # Timestamp als Index setzen!
+
+    # Funktion: Cluster von Anomalien finden
+    def find_anomaly_clusters(df, gap_threshold='2h'):
+        anomalies = df[df['anomaly'] == 1].copy()
+        anomalies = anomalies.sort_index()
+        anomalies['time_diff'] = anomalies.index.to_series().diff()
+        anomalies['cluster_id'] = (anomalies['time_diff'] > pd.Timedelta(gap_threshold)).cumsum()
+        return anomalies
+
+    # Kopie für Bearbeitung
+    current_df = df.copy()
+
+    # Schrittweise Clustern entfernen und speichern
+    iteration = 0
+
+    while True:
+        anomalies = find_anomaly_clusters(current_df, gap_threshold=f'{cluster_gap_hours}h')
+
+        if anomalies.empty:
+            print("Keine weiteren Anomalien mehr vorhanden.")
+            break
+
+        if modus == 'vorwärts':
+            cluster_id = anomalies['cluster_id'].iloc[0]  # erstes Cluster
+        elif modus == 'rückwärts':
+            cluster_id = anomalies['cluster_id'].iloc[-1]  # letztes Cluster
+        elif modus == 'zufällig':
+            cluster_id = random.choice(anomalies['cluster_id'].unique())  # zufälliges Cluster
+        else:
+            raise ValueError("Ungültiger Modus. Bitte 'vorwärts', 'rückwärts' oder 'zufällig' wählen.")
+
+        # Indizes der Anomalien dieses Clusters
+        cluster_indices = anomalies[anomalies['cluster_id'] == cluster_id].index
+
+        if cluster_indices.empty:
+            break
+
+        # Setze die Anomalien auf NaN, um später zu interpolieren
+        current_df.loc[cluster_indices, 'meter_reading'] = np.nan
+        current_df.loc[cluster_indices, 'anomaly'] = 0  # Anomalie-Flag auf 0 setzen
+
+        # Interpolation auf den NaN-Werten
+        current_df['meter_reading'] = current_df['meter_reading'].interpolate(method='time')
+
+        # Datei speichern
+        output_file = os.path.join(output_folder, f'anomalien_ersetzt_{(iteration+1)*10}prozent.csv')
+        current_df.reset_index().to_csv(output_file, index=False)  # Zurück zu normaler CSV mit Timestamp-Spalte
+        print(f"{(iteration+1)*10}% der Cluster ersetzt – Datei gespeichert: {output_file}")
+
+        iteration += 1
 
 
 #run(raw_data_copy)
@@ -222,4 +282,5 @@ def anomalie_anteile_erstellen():
 #plot_one_id(raw_data_copy, 439)
 #filter_id_out(raw_data_copy, 439)
 #anomalie_ersetzen()
-anomalie_anteile_erstellen()
+#anomalie_anteile_erstellen()
+remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')

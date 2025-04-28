@@ -1,0 +1,53 @@
+Modellvergleich für Gebäude 118
+========================================
+
+10% ersetzte Anomalien:
+- MAE:          33.0041
+- RMSE:         54.0876
+- MAE (%):      9.37 %
+
+20% ersetzte Anomalien:
+- MAE:          25.0700
+- RMSE:         41.0406
+- MAE (%):      7.04 %
+
+30% ersetzte Anomalien:
+- MAE:          24.7407
+- RMSE:         38.4485
+- MAE (%):      6.88 %
+
+40% ersetzte Anomalien:
+- MAE:          21.9444
+- RMSE:         27.1429
+- MAE (%):      6.05 %
+
+50% ersetzte Anomalien:
+- MAE:          21.2362
+- RMSE:         26.8150
+- MAE (%):      5.85 %
+
+60% ersetzte Anomalien:
+- MAE:          15.8399
+- RMSE:         19.9050
+- MAE (%):      4.36 %
+
+70% ersetzte Anomalien:
+- MAE:          15.3729
+- RMSE:         19.5649
+- MAE (%):      4.24 %
+
+80% ersetzte Anomalien:
+- MAE:          18.0072
+- RMSE:         22.3390
+- MAE (%):      4.96 %
+
+90% ersetzte Anomalien:
+- MAE:          14.9246
+- RMSE:         18.9852
+- MAE (%):      4.11 %
+
+100% ersetzte Anomalien:
+- MAE:          13.0528
+- RMSE:         16.9304
+- MAE (%):      3.60 %
+
