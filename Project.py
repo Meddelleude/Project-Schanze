@@ -171,57 +171,42 @@ def anomalie_ersetzen():
     df = pd.read_csv("Filtered_data/filtered_data_335.csv", parse_dates=["timestamp"])
     df.set_index("timestamp", inplace=True)
 
-    # Nur die "kaputten" Werte als NaN markieren
     df.loc[df["anomaly"] == 1, "meter_reading"] = pd.NA
 
-    # Interpolieren der NaN-Werte
     df["meter_reading"] = df["meter_reading"].interpolate(method='time', limit_direction='both')
 
-    # Anomaly-Flag auf 0 setzen (optional, wenn du die Flags auch zurücksetzen willst)
     df["anomaly"] = 0
 
-    # Speichern (optional)
     df.to_csv("id335/anomalien_entfernt.csv")
 
 def anomalie_anteile_erstellen():
     df_original  = pd.read_csv("id121/Daten/filtered_data_121.csv", parse_dates=["timestamp"])
     df_original.set_index("timestamp", inplace=True)
 
-    # Alle Indizes mit anomaly == 1
     anomalie_indices = df_original[df_original["anomaly"] == 1].index
 
-    # Schleife über 10%-Schritte (10 bis 100)
     for prozent in range(10, 101, 10):
         df = df_original.copy()
 
-        # Anzahl zu ersetzender Anomalien
         n = int(len(anomalie_indices) * (prozent / 100))
 
-        # Zufällige Auswahl
         ersatz_indices = np.random.choice(anomalie_indices, size=n, replace=False)
 
-        # Werte auf NaN setzen
         df.loc[ersatz_indices, "meter_reading"] = pd.NA
 
-        # Interpolation
         df["meter_reading"] = df["meter_reading"].interpolate(method="time", limit_direction="both")
 
-        # Optional: Flag zurücksetzen
         df.loc[ersatz_indices, "anomaly"] = 0
 
-        # Datei speichern
         df.to_csv(f"id121/Daten/anomalien_ersetzt_{prozent}prozent.csv")
         print(f"{prozent}% ersetzt – Datei gespeichert: anomalien_ersetzt_{prozent}prozent.csv")
 
 def remove_anomaly_clusters(input_file, output_folder, cluster_gap_hours=2, modus='rückwärts'):
-    # Sicherstellen, dass Ausgabeordner existiert
+
     os.makedirs(output_folder, exist_ok=True)
-
-    # Daten laden
     df = pd.read_csv(input_file, parse_dates=['timestamp'])
-    df.set_index('timestamp', inplace=True)  # Timestamp als Index setzen!
+    df.set_index('timestamp', inplace=True) 
 
-    # Funktion: Cluster von Anomalien finden
     def find_anomaly_clusters(df, gap_threshold='2h'):
         anomalies = df[df['anomaly'] == 1].copy()
         anomalies = anomalies.sort_index()
@@ -229,10 +214,7 @@ def remove_anomaly_clusters(input_file, output_folder, cluster_gap_hours=2, modu
         anomalies['cluster_id'] = (anomalies['time_diff'] > pd.Timedelta(gap_threshold)).cumsum()
         return anomalies
 
-    # Kopie für Bearbeitung
     current_df = df.copy()
-
-    # Schrittweise Clustern entfernen und speichern
     iteration = 0
 
     while True:
@@ -243,33 +225,54 @@ def remove_anomaly_clusters(input_file, output_folder, cluster_gap_hours=2, modu
             break
 
         if modus == 'vorwärts':
-            cluster_id = anomalies['cluster_id'].iloc[0]  # erstes Cluster
+            cluster_id = anomalies['cluster_id'].iloc[0] 
         elif modus == 'rückwärts':
-            cluster_id = anomalies['cluster_id'].iloc[-1]  # letztes Cluster
+            cluster_id = anomalies['cluster_id'].iloc[-1] 
         elif modus == 'zufällig':
-            cluster_id = random.choice(anomalies['cluster_id'].unique())  # zufälliges Cluster
+            cluster_id = random.choice(anomalies['cluster_id'].unique())  
         else:
             raise ValueError("Ungültiger Modus. Bitte 'vorwärts', 'rückwärts' oder 'zufällig' wählen.")
 
-        # Indizes der Anomalien dieses Clusters
         cluster_indices = anomalies[anomalies['cluster_id'] == cluster_id].index
 
         if cluster_indices.empty:
             break
 
-        # Setze die Anomalien auf NaN, um später zu interpolieren
         current_df.loc[cluster_indices, 'meter_reading'] = np.nan
-        current_df.loc[cluster_indices, 'anomaly'] = 0  # Anomalie-Flag auf 0 setzen
-
-        # Interpolation auf den NaN-Werten
+        current_df.loc[cluster_indices, 'anomaly'] = 0  
         current_df['meter_reading'] = current_df['meter_reading'].interpolate(method='time')
-
-        # Datei speichern
         output_file = os.path.join(output_folder, f'anomalien_ersetzt_{(iteration+1)*10}prozent.csv')
-        current_df.reset_index().to_csv(output_file, index=False)  # Zurück zu normaler CSV mit Timestamp-Spalte
+        current_df.reset_index().to_csv(output_file, index=False)  
         print(f"{(iteration+1)*10}% der Cluster ersetzt – Datei gespeichert: {output_file}")
 
         iteration += 1
+
+def plot_verschiedene_ids_zusammen(df, ids):
+    os.makedirs("Filtered_data", exist_ok=True)
+    
+    palette = sns.color_palette("Set2", n_colors=len(ids))  # Farbschema dynamisch nach Anzahl IDs
+    plt.figure(figsize=(30, 6))  # Großer Plot
+
+    for i, target_id in enumerate(ids):
+        filtered_df = df[df['building_id'] == target_id]
+        
+        if filtered_df.empty:
+            print(f"⚠️ Keine Daten für Gebäude-ID {target_id}. Überspringe...")
+            continue
+        
+        sns.lineplot(x=filtered_df['timestamp'], y=filtered_df['meter_reading'], 
+                     label=f'ID {target_id}', color=palette[i % len(palette)], linewidth=0.5)
+
+    plt.title('Meter Reading Over Time for Selected Building IDs')  
+    plt.xlabel('Timestamp')  
+    plt.ylabel('Meter Reading')  
+    plt.xticks(rotation=45)  
+    plt.grid(True)  
+
+    plt.legend(title="Building ID", loc="upper left", bbox_to_anchor=(1, 1))
+    plt.savefig('combined_meter_reading_plot2.png', bbox_inches='tight')
+    plt.show()
+        
 
 
 #run(raw_data_copy)
@@ -279,8 +282,9 @@ def remove_anomaly_clusters(input_file, output_folder, cluster_gap_hours=2, modu
 #only_anomaly("Filtered_data/filtered_data_439.csv")
 #to_csv("filtered_data_1.txt")
 #stunden_im_jahr()
-#plot_one_id(raw_data_copy, 439)
+#plot_one_id(raw_data_copy, 335)
+#plot_verschiedene_ids_zusammen(raw_data_copy,ids = [118, 121])
 #filter_id_out(raw_data_copy, 439)
 #anomalie_ersetzen()
 #anomalie_anteile_erstellen()
-remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')
+#remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')
