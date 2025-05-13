@@ -726,11 +726,11 @@ def main(file_path):
     visualize_imputation(df, imputed_df)
     
     print("Speichere imputierte Daten...")
-    imputed_df.to_csv('imputed_meter_readings_118_CPI.csv', index=False)
+    imputed_df.to_csv('id439neu/imputed_meter_readings_439_CPI.csv', index=False)
     
     print("Fertig! Imputierte Daten wurden in 'imputed_meter_readings.csv' gespeichert.")
 
 # Beispielaufruf
 if __name__ == "__main__":
-    file_path = "id439/Daten/filtered_data_118.csv"  
+    file_path = "id439/Daten/filtered_data_439.csv"  
     main(file_path)

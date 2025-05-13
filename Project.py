@@ -156,12 +156,40 @@ def count_building_id_and_anomalies(df):
     return combined_counts
 
 def only_anomaly(input_file):
+    # CSV-Datei einlesen
+    df = pd.read_csv(input_file, parse_dates=["timestamp"])
     
-    df = pd.read_csv(input_file, sep=",", engine="python")  
-    df_filtered = df[df['anomaly'] == 1] 
-    building_id = df_filtered['building_id'].iloc[0]
+    # Nur Anomalien filtern
+    df = df[df["anomaly"] == 1].sort_values("timestamp")
+
+    # Sicherstellen, dass Anomalien vorhanden sind
+    if df.empty:
+        print("Keine Anomalien gefunden.")
+        return
+
+    # Zeitdifferenz in Stunden zwischen aufeinanderfolgenden Anomalien berechnen
+    df["time_diff"] = df["timestamp"].diff().dt.total_seconds().div(3600).fillna(0)
+
+    # Neues Cluster starten, wenn die Zeitdifferenz > 1h ist
+    df["cluster_id"] = (df["time_diff"] > 1).cumsum()
+
+    # Datei mit Leerzeilen zwischen Clustern vorbereiten
+    output_rows = []
+    for _, group in df.groupby("cluster_id"):
+        output_rows.append(group.drop(columns=["time_diff", "cluster_id"]))
+        # Leere Zeile einfügen
+        empty_row = pd.DataFrame([[""] * len(df.columns[:-2])], columns=df.columns[:-2])
+        output_rows.append(empty_row)
+
+    # Alles zusammenführen
+    output_df = pd.concat(output_rows, ignore_index=True)
+
+    # Datei schreiben
+    building_id = df["building_id"].iloc[0]
     output_file = f"anomalies_building_{building_id}.txt"
-    df_filtered.to_csv(output_file, sep=" ", index=False)
+    output_df.to_csv(output_file, sep=" ", index=False)
+
+    print(f"Clustered Anomalien gespeichert in: {output_file}")
 
 def to_csv(input):
     df = pd.read_csv(input, sep=" ", engine="python")
@@ -283,8 +311,9 @@ def plot_verschiedene_ids_zusammen(df, ids):
 #to_csv("filtered_data_1.txt")
 #stunden_im_jahr()
 #plot_one_id(raw_data_copy, 335)
-#plot_verschiedene_ids_zusammen(raw_data_copy,ids = [118, 121])
+#plot_verschiedene_ids_zusammen(raw_data_copy,ids = [118, 335, 439])
 #filter_id_out(raw_data_copy, 439)
 #anomalie_ersetzen()
 #anomalie_anteile_erstellen()
 #remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')
+#only_anomaly("id335neu/filtered_data_335.csv")
