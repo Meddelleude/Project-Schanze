@@ -173,8 +173,8 @@ def main():
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     
     # Lade die Daten
-    file_with_anomalies = "id335neu/filtered_data_335.csv"  # Pfad zur Datei mit Anomalien
-    file_with_imputations = "id335neu/imputed_meter_readings_335_CPI.csv"  # Pfad zur Datei mit imputierten Anomalien
+    file_with_anomalies = "id439neu/filtered_data_building_439_filled_mehr_1.csv"  # Pfad zur Datei mit Anomalien
+    file_with_imputations = "id439neu/imputed_meter_readings_439_CPI_mehr_1.csv"  # Pfad zur Datei mit imputierten Anomalien
     
     df_anomalies = pd.read_csv(file_with_anomalies, parse_dates=["timestamp"])
     df_imputed = pd.read_csv(file_with_imputations, parse_dates=["timestamp"])

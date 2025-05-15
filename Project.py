@@ -4,6 +4,7 @@ import seaborn as sns
 import numpy as np
 import os
 import random
+from datetime import datetime, timedelta
 
 raw_data = pd.read_csv('lead1.0-small.csv')
 raw_data_copy = raw_data.copy()
@@ -301,6 +302,114 @@ def plot_verschiedene_ids_zusammen(df, ids):
     plt.savefig('combined_meter_reading_plot2.png', bbox_inches='tight')
     plt.show()
         
+def fill_missing_timesteps(file_path, building_id, output_dir=None,
+                          time_column='timestamp', value_column='meter_reading', 
+                          anomaly_column='anomaly', time_freq='1H'):
+    print(f"Extrahiere und vervollständige Daten für Gebäude-ID: {building_id}")
+    
+    # 1. Lade die Daten aus der CSV-Datei
+    try:
+        df = pd.read_csv(file_path)
+        print(f"Datei geladen: {file_path}")
+        print(f"Gesamtzahl der Datenpunkte: {len(df)}")
+    except Exception as e:
+        print(f"Fehler beim Laden der Datei: {e}")
+        return None
+    
+    # 2. Extrahiere die Daten für die angegebene Gebäude-ID
+    building_df = df[df['building_id'] == building_id].copy()
+    
+    if len(building_df) == 0:
+        print(f"Keine Daten für Gebäude-ID {building_id} gefunden.")
+        return None
+    
+    print(f"Datenpunkte für Gebäude-ID {building_id}: {len(building_df)}")
+    
+    # 3. Stelle sicher, dass die Zeitstempelspalte als datetime-Typ vorliegt
+    if building_df[time_column].dtype != 'datetime64[ns]':
+        building_df[time_column] = pd.to_datetime(building_df[time_column])
+    
+    # 4. Sortiere die Daten nach dem Zeitstempel
+    building_df = building_df.sort_values(by=time_column)
+    
+    # 5. Erstelle einen vollständigen Zeitreihenindex
+    start_time = building_df[time_column].min()
+    end_time = building_df[time_column].max()
+    
+    print(f"Zeitbereich: {start_time} bis {end_time}")
+    
+    # Erstelle einen vollständigen Zeitreihenindex mit dem angegebenen Intervall
+    complete_timerange = pd.date_range(start=start_time, end=end_time, freq=time_freq)
+    
+    # 6. Erstelle ein neues DataFrame mit dem vollständigen Zeitreihenindex
+    complete_df = pd.DataFrame({time_column: complete_timerange})
+    
+    # 7. Setze den Zeitstempel als Index für beide DataFrames
+    building_df.set_index(time_column, inplace=True)
+    complete_df.set_index(time_column, inplace=True)
+    
+    # 8. Führe die DataFrames zusammen (äußere Verbindung, um alle Zeitstempel zu behalten)
+    merged_df = complete_df.join(building_df, how='left')
+    
+    # 9. Setze die Gebäude-ID für alle Zeilen
+    if 'building_id' in merged_df.columns:
+        merged_df['building_id'].fillna(building_id, inplace=True)
+    else:
+        merged_df['building_id'] = building_id
+    
+    # 10. Fülle fehlende Werte für meter_reading und anomaly mit 1
+    if value_column in merged_df.columns:
+        merged_df[value_column].fillna(1, inplace=True)
+    else:
+        merged_df[value_column] = 1
+        
+    if anomaly_column in merged_df.columns:
+        merged_df[anomaly_column].fillna(1, inplace=True)
+    else:
+        merged_df[anomaly_column] = 1
+    
+    # 11. Fülle andere fehlende Werte mit vorwärts- oder rückwärtsfüllung
+    for col in merged_df.columns:
+        if col not in [value_column, anomaly_column, 'building_id']:
+            if merged_df[col].dtype in ['int64', 'float64']:
+                # Für numerische Spalten: Interpolation
+                merged_df[col].interpolate(method='linear', limit_direction='both', inplace=True)
+            else:
+                # Für kategoriale Spalten: Vorwärts- und dann Rückwärtsfüllung
+                merged_df[col].fillna(method='ffill', inplace=True)
+                merged_df[col].fillna(method='bfill', inplace=True)
+    
+    # 12. Setze den Zeitstempel zurück als Spalte
+    merged_df.reset_index(inplace=True)
+    
+    # 13. Gib Informationen über die Anzahl der hinzugefügten Datenpunkte aus
+    original_count = len(building_df)
+    filled_count = len(merged_df) - original_count
+    
+    print(f"Ursprüngliche Datenpunkte: {original_count}")
+    print(f"Hinzugefügte Datenpunkte: {filled_count}")
+    print(f"Gesamtzahl der Datenpunkte nach Auffüllung: {len(merged_df)}")
+    
+    # 14. Speichere das Ergebnis als CSV-Datei
+    # Erstelle einen aussagekräftigen Dateinamen
+    file_name = os.path.basename(file_path)
+    file_base = os.path.splitext(file_name)[0]
+    
+    if output_dir is None:
+        output_dir = os.path.dirname(file_path) if os.path.dirname(file_path) else '.'
+    
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        
+    output_file = os.path.join(output_dir, f"{file_base}_building_{building_id}_filled.csv")
+    
+    try:
+        merged_df.to_csv(output_file, index=False)
+        print(f"Ergebnis gespeichert in: {output_file}")
+        return output_file
+    except Exception as e:
+        print(f"Fehler beim Speichern der Datei: {e}")
+        return None
 
 
 #run(raw_data_copy)
@@ -317,3 +426,4 @@ def plot_verschiedene_ids_zusammen(df, ids):
 #anomalie_anteile_erstellen()
 #remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')
 #only_anomaly("id335neu/filtered_data_335.csv")
+fill_missing_timesteps("lead1.0-small.csv",439)
