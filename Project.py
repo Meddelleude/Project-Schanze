@@ -304,7 +304,7 @@ def plot_verschiedene_ids_zusammen(df, ids):
         
 def fill_missing_timesteps(file_path, building_id, output_dir=None,
                           time_column='timestamp', value_column='meter_reading', 
-                          anomaly_column='anomaly', time_freq='1H'):
+                          anomaly_column='anomaly', time_freq='1h'):  # 'h' statt 'H'
     print(f"Extrahiere und vervollständige Daten für Gebäude-ID: {building_id}")
     
     # 1. Lade die Daten aus der CSV-Datei
@@ -351,36 +351,37 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
     # 8. Führe die DataFrames zusammen (äußere Verbindung, um alle Zeitstempel zu behalten)
     merged_df = complete_df.join(building_df, how='left')
     
-    # 9. Setze die Gebäude-ID für alle Zeilen
+    # 9. Setze die Gebäude-ID für alle Zeilen ohne inplace=True
     if 'building_id' in merged_df.columns:
-        merged_df['building_id'].fillna(building_id, inplace=True)
+        # Vermeiden von inplace=True, stattdessen Zuweisung direkt
+        merged_df['building_id'] = merged_df['building_id'].fillna(building_id)
     else:
         merged_df['building_id'] = building_id
     
-    # 10. Fülle fehlende Werte für meter_reading und anomaly mit 1
+    # 10. Fülle fehlende Werte für meter_reading und anomaly mit 1 ohne inplace=True
     if value_column in merged_df.columns:
-        merged_df[value_column].fillna(1, inplace=True)
+        merged_df[value_column] = merged_df[value_column].fillna(1)
     else:
         merged_df[value_column] = 1
         
     if anomaly_column in merged_df.columns:
-        merged_df[anomaly_column].fillna(1, inplace=True)
+        merged_df[anomaly_column] = merged_df[anomaly_column].fillna(1)
     else:
         merged_df[anomaly_column] = 1
     
-    # 11. Fülle andere fehlende Werte mit vorwärts- oder rückwärtsfüllung
+    # 11. Fülle andere fehlende Werte ohne inplace=True
     for col in merged_df.columns:
         if col not in [value_column, anomaly_column, 'building_id']:
             if merged_df[col].dtype in ['int64', 'float64']:
-                # Für numerische Spalten: Interpolation
-                merged_df[col].interpolate(method='linear', limit_direction='both', inplace=True)
+                # Für numerische Spalten: Interpolation ohne inplace=True
+                merged_df[col] = merged_df[col].interpolate(method='linear', limit_direction='both')
             else:
-                # Für kategoriale Spalten: Vorwärts- und dann Rückwärtsfüllung
-                merged_df[col].fillna(method='ffill', inplace=True)
-                merged_df[col].fillna(method='bfill', inplace=True)
+                # Für kategoriale Spalten: Vorwärts- und dann Rückwärtsfüllung ohne inplace=True
+                merged_df[col] = merged_df[col].fillna(method='ffill')
+                merged_df[col] = merged_df[col].fillna(method='bfill')
     
     # 12. Setze den Zeitstempel zurück als Spalte
-    merged_df.reset_index(inplace=True)
+    merged_df = merged_df.reset_index()
     
     # 13. Gib Informationen über die Anzahl der hinzugefügten Datenpunkte aus
     original_count = len(building_df)
@@ -419,11 +420,11 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
 #only_anomaly("Filtered_data/filtered_data_439.csv")
 #to_csv("filtered_data_1.txt")
 #stunden_im_jahr()
-#plot_one_id(raw_data_copy, 335)
+#plot_one_id(raw_data_copy, 685)
 #plot_verschiedene_ids_zusammen(raw_data_copy,ids = [118, 335, 439])
-#filter_id_out(raw_data_copy, 439)
+#filter_id_out(raw_data_copy, 685)
 #anomalie_ersetzen()
 #anomalie_anteile_erstellen()
 #remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')
 #only_anomaly("id335neu/filtered_data_335.csv")
-fill_missing_timesteps("lead1.0-small.csv",439)
+#fill_missing_timesteps("lead1.0-small.csv",685)

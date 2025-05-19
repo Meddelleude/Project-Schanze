@@ -1,0 +1,35 @@
+site_id,building_id,primary_use,square_feet,year_built,floor_count
+1,118,Education,138316,1960.0,8.0
+1,148,Office,174601,1960.0,12.0
+2,254,Entertainment/public assembly,254766,1989.0,
+5,680,Public services,9849,1976.0,2.0
+5,685,Office,270034,1976.0,5.0
+5,732,Education,66187,1976.0,1.0
+9,880,Education,157723,,
+9,881,Entertainment/public assembly,344798,,
+9,882,Education,39143,,
+9,884,Education,38598,,
+9,890,Education,202937,,
+9,894,Education,101555,,
+9,895,Education,55087,,
+9,914,Education,229973,,
+9,919,Education,31233,,
+9,924,Entertainment/public assembly,252268,,
+9,925,Education,54405,,
+9,931,Education,216050,,
+9,945,Office,332447,,
+9,948,Entertainment/public assembly,20372,,
+9,950,Entertainment/public assembly,16052,,
+9,968,Education,153999,,
+9,988,Office,24463,,
+12,1068,Education,112956,,
+13,1128,Office,58703,,
+14,1238,Office,129707,,
+14,1246,Office,50327,,
+14,1249,Office,159384,,
+14,1252,Education,116249,,
+14,1253,Education,134748,,
+14,1259,Education,71088,,
+14,1261,Office,42942,,
+14,1284,Education,442438,,
+14,1304,Office,91363,,
