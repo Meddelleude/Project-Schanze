@@ -304,7 +304,7 @@ def plot_verschiedene_ids_zusammen(df, ids):
         
 def fill_missing_timesteps(file_path, building_id, output_dir=None,
                           time_column='timestamp', value_column='meter_reading', 
-                          anomaly_column='anomaly', time_freq='1h'):  # 'h' statt 'H'
+                          anomaly_column='anomaly', time_freq='1h'):
     print(f"Extrahiere und vervollständige Daten für Gebäude-ID: {building_id}")
     
     # 1. Lade die Daten aus der CSV-Datei
@@ -332,58 +332,74 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
     # 4. Sortiere die Daten nach dem Zeitstempel
     building_df = building_df.sort_values(by=time_column)
     
-    # 5. Erstelle einen vollständigen Zeitreihenindex
-    start_time = building_df[time_column].min()
-    end_time = building_df[time_column].max()
+    # 5. Erstelle einen vollständigen Zeitreihenindex für ein Jahr (8760 Stunden)
+    # Finde das früheste und späteste Datum im gesamten Datensatz
+    if df[time_column].dtype != 'datetime64[ns]':
+        df[time_column] = pd.to_datetime(df[time_column])
     
-    print(f"Zeitbereich: {start_time} bis {end_time}")
+    min_date = df[time_column].min()
+    max_date = df[time_column].max()
     
-    # Erstelle einen vollständigen Zeitreihenindex mit dem angegebenen Intervall
-    complete_timerange = pd.date_range(start=start_time, end=end_time, freq=time_freq)
+    print(f"Vollständiger Zeitbereich des Datensatzes: {min_date} bis {max_date}")
+    
+    # Erzeuge die vollständige Zeitreihe für das gesamte Jahr
+    complete_timerange = pd.date_range(start=min_date, end=max_date, freq=time_freq)
+    expected_count = len(complete_timerange)
+    print(f"Erwartete Anzahl an Datenpunkten für ein volles Jahr: {expected_count}")
+    
+    # Überprüfe fehlende Zeitstempel
+    existing_timestamps = set(building_df[time_column])
+    missing_timestamps = [ts for ts in complete_timerange if ts not in existing_timestamps]
+    
+    print(f"Anzahl fehlender Zeitstempel: {len(missing_timestamps)}")
+    if len(missing_timestamps) > 0:
+        print(f"Erste 5 fehlende Zeitstempel: {missing_timestamps[:5]}")
     
     # 6. Erstelle ein neues DataFrame mit dem vollständigen Zeitreihenindex
     complete_df = pd.DataFrame({time_column: complete_timerange})
     
-    # 7. Setze den Zeitstempel als Index für beide DataFrames
-    building_df.set_index(time_column, inplace=True)
-    complete_df.set_index(time_column, inplace=True)
+    # 7. Führe die DataFrames zusammen mit dem Zeitstempel als Schlüssel
+    # Setze zuerst den Zeitstempel als Index für beide DataFrames
+    building_df_indexed = building_df.set_index(time_column)
+    complete_df_indexed = complete_df.set_index(time_column)
     
-    # 8. Führe die DataFrames zusammen (äußere Verbindung, um alle Zeitstempel zu behalten)
-    merged_df = complete_df.join(building_df, how='left')
+    # Führe die DataFrames zusammen (linke Verbindung, um alle Zeitstempel zu behalten)
+    merged_df = pd.merge(complete_df_indexed, building_df_indexed, 
+                         left_index=True, right_index=True, 
+                         how='left')
     
-    # 9. Setze die Gebäude-ID für alle Zeilen ohne inplace=True
+    # Wenn das building_id von der Verbindung übernommen wurde, verwende es direkt, andernfalls füge es hinzu
     if 'building_id' in merged_df.columns:
-        # Vermeiden von inplace=True, stattdessen Zuweisung direkt
+        # Ersetze NaN durch die angegebene building_id
         merged_df['building_id'] = merged_df['building_id'].fillna(building_id)
     else:
         merged_df['building_id'] = building_id
     
-    # 10. Fülle fehlende Werte für meter_reading und anomaly mit 1 ohne inplace=True
+    # Fülle fehlende Werte für meter_reading und anomaly
     if value_column in merged_df.columns:
-        merged_df[value_column] = merged_df[value_column].fillna(1)
-    else:
-        merged_df[value_column] = 1
+        # Zeige an, wie viele Messwerte fehlten
+        missing_count = merged_df[value_column].isna().sum()
+        print(f"Anzahl fehlender Messwerte: {missing_count}")
         
-    if anomaly_column in merged_df.columns:
-        merged_df[anomaly_column] = merged_df[anomaly_column].fillna(1)
+        # Ersetze fehlende Werte durch 0 oder einen anderen Wert nach Bedarf
+        # 0 ist typisch für fehlende Messwerte - oder verwende interpolation
+        merged_df[value_column] = merged_df[value_column].fillna(0)
     else:
-        merged_df[anomaly_column] = 1
+        merged_df[value_column] = 0
     
-    # 11. Fülle andere fehlende Werte ohne inplace=True
-    for col in merged_df.columns:
-        if col not in [value_column, anomaly_column, 'building_id']:
-            if merged_df[col].dtype in ['int64', 'float64']:
-                # Für numerische Spalten: Interpolation ohne inplace=True
-                merged_df[col] = merged_df[col].interpolate(method='linear', limit_direction='both')
-            else:
-                # Für kategoriale Spalten: Vorwärts- und dann Rückwärtsfüllung ohne inplace=True
-                merged_df[col] = merged_df[col].fillna(method='ffill')
-                merged_df[col] = merged_df[col].fillna(method='bfill')
+    if anomaly_column in merged_df.columns:
+        # Für Anomalien ist 0 typisch (keine Anomalie)
+        merged_df[anomaly_column] = merged_df[anomaly_column].fillna(0)
+    else:
+        merged_df[anomaly_column] = 0
     
-    # 12. Setze den Zeitstempel zurück als Spalte
+    # Setze den Zeitstempel zurück als Spalte
     merged_df = merged_df.reset_index()
     
-    # 13. Gib Informationen über die Anzahl der hinzugefügten Datenpunkte aus
+    # Sortiere nach Zeitstempel
+    merged_df = merged_df.sort_values(by=time_column)
+    
+    # Gib Informationen über die Anzahl der hinzugefügten Datenpunkte aus
     original_count = len(building_df)
     filled_count = len(merged_df) - original_count
     
@@ -391,8 +407,23 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
     print(f"Hinzugefügte Datenpunkte: {filled_count}")
     print(f"Gesamtzahl der Datenpunkte nach Auffüllung: {len(merged_df)}")
     
-    # 14. Speichere das Ergebnis als CSV-Datei
-    # Erstelle einen aussagekräftigen Dateinamen
+    # Überprüfe ob wir jetzt tatsächlich alle erwarteten Zeitstempel haben
+    if len(merged_df) != expected_count:
+        print(f"WARNUNG: Anzahl der Datenpunkte nach Auffüllung ({len(merged_df)}) "
+              f"entspricht nicht der erwarteten Anzahl ({expected_count})!")
+        
+        # Wenn es immer noch nicht stimmt, analysiere genauer
+        merged_timestamps = set(merged_df[time_column])
+        still_missing = [ts for ts in complete_timerange if pd.Timestamp(ts) not in merged_timestamps]
+        if still_missing:
+            print(f"Es fehlen immer noch {len(still_missing)} Zeitstempel!")
+            print(f"Erste 5 fehlende: {still_missing[:5]}")
+        
+        duplicate_timestamps = merged_df[time_column].duplicated().sum()
+        if duplicate_timestamps > 0:
+            print(f"Es gibt {duplicate_timestamps} doppelte Zeitstempel!")
+    
+    # Speichere das Ergebnis als CSV-Datei
     file_name = os.path.basename(file_path)
     file_base = os.path.splitext(file_name)[0]
     
@@ -427,4 +458,4 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
 #anomalie_anteile_erstellen()
 #remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')
 #only_anomaly("id335neu/filtered_data_335.csv")
-#fill_missing_timesteps("lead1.0-small.csv",685)
+fill_missing_timesteps("lead1.0-small.csv",685)
