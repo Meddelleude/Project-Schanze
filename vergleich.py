@@ -169,34 +169,23 @@ def run_nbeats_forecasting(df, building_id, percentage, timestamp_suffix, output
     }
 
 def main():
-    # Generiere Zeitstempel für die Dateibenennung
+
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    
-    # Lade die Daten
     file_with_anomalies = "id439neu/filtered_data_building_439_filled_mehr_1.csv"  # Pfad zur Datei mit Anomalien
     file_with_imputations = "id439neu/imputed_meter_readings_439_CPI_mehr_1.csv"  # Pfad zur Datei mit imputierten Anomalien
-    
     df_anomalies = pd.read_csv(file_with_anomalies, parse_dates=["timestamp"])
     df_imputed = pd.read_csv(file_with_imputations, parse_dates=["timestamp"])
-    
-    # Überprüfe, ob beide Datensätze das gleiche Gebäude enthalten
+
     building_id_anomalies = int(df_anomalies["building_id"].iloc[0])
     building_id_imputed = int(df_imputed["building_id"].iloc[0])
-    
     if building_id_anomalies != building_id_imputed:
         print(f"WARNUNG: Die Dateien haben unterschiedliche Gebäude-IDs: {building_id_anomalies} vs {building_id_imputed}")
         return
-    
     building_id = building_id_anomalies
-    
-    # Erstelle Verzeichnis für Ergebnisse
+
     output_dir = f"Forecast/ID{building_id}_Analysis_{timestamp}"
     os.makedirs(output_dir, exist_ok=True)
-    
-    # Ersetze Anomalien inkrementell in 10%-Schritten
     partially_imputed_dataframes = replace_anomalies_incrementally(df_anomalies, df_imputed)
-    
-    # Speichere Informationen über die gefundenen Anomalien
     anomaly_clusters = identify_anomaly_clusters(df_anomalies)
     cluster_info = pd.DataFrame([
         {
@@ -211,18 +200,12 @@ def main():
     cluster_info.to_csv(f"{output_dir}/anomaly_clusters_info.csv", index=False)
     print(f"Identifizierte Anomalie-Cluster: {len(anomaly_clusters)}")
     print(f"Gesamtzahl der Anomalien: {df_anomalies['anomaly'].sum()}")
-    
-    # Führe NBEATS für jeden Prozentsatz aus
     results = []
     for percentage, df in partially_imputed_dataframes:
         result = run_nbeats_forecasting(df, building_id, percentage, timestamp, output_dir)
         results.append(result)
-    
-    # Erstelle Zusammenfassung der Ergebnisse
     results_df = pd.DataFrame(results)
     results_df.to_csv(f"{output_dir}/forecast_metrics_summary.csv", index=False)
-    
-    # Erstelle Plot, der den Einfluss des Anomalie-Ersetzungsprozentsatzes auf die Metriken zeigt
     plt.figure(figsize=(12, 8))
     
     plt.subplot(2, 1, 1)

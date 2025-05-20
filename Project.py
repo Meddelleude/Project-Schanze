@@ -307,7 +307,6 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
                           anomaly_column='anomaly', time_freq='1h'):
     print(f"Extrahiere und vervollständige Daten für Gebäude-ID: {building_id}")
     
-    # 1. Lade die Daten aus der CSV-Datei
     try:
         df = pd.read_csv(file_path)
         print(f"Datei geladen: {file_path}")
@@ -315,25 +314,17 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
     except Exception as e:
         print(f"Fehler beim Laden der Datei: {e}")
         return None
-    
-    # 2. Extrahiere die Daten für die angegebene Gebäude-ID
+
     building_df = df[df['building_id'] == building_id].copy()
     
     if len(building_df) == 0:
         print(f"Keine Daten für Gebäude-ID {building_id} gefunden.")
         return None
-    
     print(f"Datenpunkte für Gebäude-ID {building_id}: {len(building_df)}")
-    
-    # 3. Stelle sicher, dass die Zeitstempelspalte als datetime-Typ vorliegt
     if building_df[time_column].dtype != 'datetime64[ns]':
         building_df[time_column] = pd.to_datetime(building_df[time_column])
-    
-    # 4. Sortiere die Daten nach dem Zeitstempel
     building_df = building_df.sort_values(by=time_column)
     
-    # 5. Erstelle einen vollständigen Zeitreihenindex für ein Jahr (8760 Stunden)
-    # Finde das früheste und späteste Datum im gesamten Datensatz
     if df[time_column].dtype != 'datetime64[ns]':
         df[time_column] = pd.to_datetime(df[time_column])
     
@@ -341,78 +332,53 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
     max_date = df[time_column].max()
     
     print(f"Vollständiger Zeitbereich des Datensatzes: {min_date} bis {max_date}")
-    
-    # Erzeuge die vollständige Zeitreihe für das gesamte Jahr
+
     complete_timerange = pd.date_range(start=min_date, end=max_date, freq=time_freq)
     expected_count = len(complete_timerange)
     print(f"Erwartete Anzahl an Datenpunkten für ein volles Jahr: {expected_count}")
-    
-    # Überprüfe fehlende Zeitstempel
+
     existing_timestamps = set(building_df[time_column])
     missing_timestamps = [ts for ts in complete_timerange if ts not in existing_timestamps]
     
     print(f"Anzahl fehlender Zeitstempel: {len(missing_timestamps)}")
     if len(missing_timestamps) > 0:
         print(f"Erste 5 fehlende Zeitstempel: {missing_timestamps[:5]}")
-    
-    # 6. Erstelle ein neues DataFrame mit dem vollständigen Zeitreihenindex
+
     complete_df = pd.DataFrame({time_column: complete_timerange})
-    
-    # 7. Führe die DataFrames zusammen mit dem Zeitstempel als Schlüssel
-    # Setze zuerst den Zeitstempel als Index für beide DataFrames
     building_df_indexed = building_df.set_index(time_column)
     complete_df_indexed = complete_df.set_index(time_column)
-    
-    # Führe die DataFrames zusammen (linke Verbindung, um alle Zeitstempel zu behalten)
     merged_df = pd.merge(complete_df_indexed, building_df_indexed, 
                          left_index=True, right_index=True, 
                          how='left')
-    
-    # Wenn das building_id von der Verbindung übernommen wurde, verwende es direkt, andernfalls füge es hinzu
+
     if 'building_id' in merged_df.columns:
-        # Ersetze NaN durch die angegebene building_id
         merged_df['building_id'] = merged_df['building_id'].fillna(building_id)
     else:
         merged_df['building_id'] = building_id
-    
-    # Fülle fehlende Werte für meter_reading und anomaly
     if value_column in merged_df.columns:
-        # Zeige an, wie viele Messwerte fehlten
         missing_count = merged_df[value_column].isna().sum()
         print(f"Anzahl fehlender Messwerte: {missing_count}")
-        
-        # Ersetze fehlende Werte durch 0 oder einen anderen Wert nach Bedarf
-        # 0 ist typisch für fehlende Messwerte - oder verwende interpolation
         merged_df[value_column] = merged_df[value_column].fillna(0)
     else:
         merged_df[value_column] = 0
     
     if anomaly_column in merged_df.columns:
-        # Für Anomalien ist 0 typisch (keine Anomalie)
         merged_df[anomaly_column] = merged_df[anomaly_column].fillna(0)
     else:
         merged_df[anomaly_column] = 0
-    
-    # Setze den Zeitstempel zurück als Spalte
     merged_df = merged_df.reset_index()
-    
-    # Sortiere nach Zeitstempel
     merged_df = merged_df.sort_values(by=time_column)
-    
-    # Gib Informationen über die Anzahl der hinzugefügten Datenpunkte aus
     original_count = len(building_df)
     filled_count = len(merged_df) - original_count
     
     print(f"Ursprüngliche Datenpunkte: {original_count}")
     print(f"Hinzugefügte Datenpunkte: {filled_count}")
     print(f"Gesamtzahl der Datenpunkte nach Auffüllung: {len(merged_df)}")
-    
-    # Überprüfe ob wir jetzt tatsächlich alle erwarteten Zeitstempel haben
+
     if len(merged_df) != expected_count:
         print(f"WARNUNG: Anzahl der Datenpunkte nach Auffüllung ({len(merged_df)}) "
               f"entspricht nicht der erwarteten Anzahl ({expected_count})!")
-        
-        # Wenn es immer noch nicht stimmt, analysiere genauer
+
         merged_timestamps = set(merged_df[time_column])
         still_missing = [ts for ts in complete_timerange if pd.Timestamp(ts) not in merged_timestamps]
         if still_missing:
@@ -422,8 +388,7 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
         duplicate_timestamps = merged_df[time_column].duplicated().sum()
         if duplicate_timestamps > 0:
             print(f"Es gibt {duplicate_timestamps} doppelte Zeitstempel!")
-    
-    # Speichere das Ergebnis als CSV-Datei
+
     file_name = os.path.basename(file_path)
     file_base = os.path.splitext(file_name)[0]
     
@@ -458,4 +423,4 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
 #anomalie_anteile_erstellen()
 #remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')
 #only_anomaly("id335neu/filtered_data_335.csv")
-fill_missing_timesteps("lead1.0-small.csv",685)
+#fill_missing_timesteps("lead1.0-small.csv",254)

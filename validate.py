@@ -1,10 +1,10 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 
 df = pd.read_csv("id118/Daten/filtered_data_118.csv", index_col=0, parse_dates=True)
 df_result = pd.read_csv("imputed_data_dd_cpi.csv", index_col=0, parse_dates=True)
 def validate_dd_cpi(original_df: pd.DataFrame, imputed_df: pd.DataFrame) -> dict:
+    
     """
     Validiert die DD-CPI-Imputation anhand mehrerer Kriterien:
     1. Energieerhaltung im Gap
@@ -22,23 +22,18 @@ def validate_dd_cpi(original_df: pd.DataFrame, imputed_df: pd.DataFrame) -> dict
 
     results = {}
 
-    # Sicherstellen, dass die Indizes datetime-Objekte sind
     original_df = original_df.copy()
     imputed_df = imputed_df.copy()
     original_df.index = pd.to_datetime(original_df.index)
     imputed_df.index = pd.to_datetime(imputed_df.index)
 
-    # Datum extrahieren
     original_df["date"] = original_df.index.date
     imputed_df["date"] = imputed_df.index.date
 
-    # Beispieltag mit Anomalie
     anomalous_days = original_df[original_df["anomaly"] == 1]["date"].unique()
     if len(anomalous_days) == 0:
         raise ValueError("Keine Anomalien in den Originaldaten gefunden.")
-    example_day = anomalous_days[0]
 
-    # 1. Energieerhaltung im Gap
     def gap_energy(df, day):
         day_data = df[df["date"] == day]
         if day_data.empty:
@@ -50,21 +45,18 @@ def validate_dd_cpi(original_df: pd.DataFrame, imputed_df: pd.DataFrame) -> dict
     results["Beispieltag mit Anomalie"] = str(example_day)
     results["Energie im Gap (Beispieltag)"] = gap_energy(imputed_df, example_day)
 
-    # 2. Durchschnittlicher Fehler auf normalen Tagen
     normal_mask = original_df["anomaly"] == 0
     if "meter_reading_imputed" not in imputed_df.columns:
         raise ValueError("Die Spalte 'meter_reading_imputed' fehlt im imputierten DataFrame.")
     diff = imputed_df.loc[normal_mask, "meter_reading_imputed"] - original_df.loc[normal_mask, "meter_reading"]
     results["Ø Fehler auf normalen Tagen (kWh)"] = round(diff.abs().mean(), 4)
 
-    # 3. Tagesverbrauch vor und nach der Imputation
     daily_before = original_df["meter_reading"].resample("D").agg(lambda x: x.max() - x.min())
     daily_after = imputed_df["meter_reading_imputed"].resample("D").agg(lambda x: x.max() - x.min())
     delta = (daily_after - daily_before).abs()
     results["Max. Differenz Tagesverbrauch (kWh)"] = round(delta.max(), 2)
     results["Ø Differenz Tagesverbrauch (kWh)"] = round(delta.mean(), 2)
 
-    # 4. Visualisierung des Energieverlaufs am Beispieltag
     df_orig_example = original_df[original_df["date"] == example_day]
     df_imp_example = imputed_df[imputed_df["date"] == example_day]
 

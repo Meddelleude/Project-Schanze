@@ -8,7 +8,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from datetime import datetime
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-df = pd.read_csv("id439neu/filtered_data_439.csv", parse_dates=["timestamp"])
+df = pd.read_csv("id685/imputed_meter_readings_685_CPI_mehr_1.csv", parse_dates=["timestamp"])
 
 series = TimeSeries.from_dataframe(df, "timestamp", "meter_reading")
 series_original = series.copy()  
@@ -65,8 +65,8 @@ ax.legend()
 ax.set_xlabel("Zeit", fontsize=12)
 ax.set_ylabel("Messwerte", fontsize=12)
 plt.title(f"forecast_plot_simple_id{building_id},{timestamp}, MAE: {mae_val:.4f}, RMSE: {rmse_val:.4f}, MAE%: {mae_percent:.2f}, ICL: {model.input_chunk_length}, OCL: {model.output_chunk_length}")
-plt.savefig(f"Forecast/forecast_plot_simple_id{building_id},mit,CPI,{timestamp}.png")
+plt.savefig(f"Forecast/forecast_plot_simple_id{building_id},CPI,{timestamp}.png")
 plt.show()
 
 forecast_df = forecast.pd_dataframe()
-forecast_df.to_csv(f"Forecast/forecast_data_id{building_id},mit,CPI,{timestamp},48h.csv", index=True)
+forecast_df.to_csv(f"Forecast/forecast_data_id{building_id},CPI,{timestamp}.csv", index=True)
