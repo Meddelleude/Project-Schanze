@@ -1,0 +1,31 @@
+# Darts/PyTorch Lightning Logs
+darts_logs/
+lightning_logs/
+tb_logs/
+tensorboard_logs/
+
+# Checkpoint-Dateien
+*.ckpt
+checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Modell-Dateien
+*.pth
+*.pt
+*.pkl
+
