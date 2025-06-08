@@ -407,13 +407,31 @@ def fill_missing_timesteps(file_path, building_id, output_dir=None,
     except Exception as e:
         print(f"Fehler beim Speichern der Datei: {e}")
         return None
+def filter_id_out_with_missing_values(raw_data_copy, id):
+    filtered_df = raw_data_copy[raw_data_copy['building_id'] == id]
+    filtered_df.to_csv(f"Filtered_data/filtered_data_{id}.csv", sep=",", index=False)
+    df = pd.read_csv(f"Filtered_data/filtered_data_{id}.csv")
 
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df.set_index('timestamp', inplace=True)
+
+    start = df.index.min()
+    end = df.index.max()
+    voller_index = pd.date_range(start=start, end=end, freq='H')
+
+    df = df.reindex(voller_index)
+
+    print("Fehlende Werte nach Reindexing:\n", df.isna().sum())
+
+    # Interpolation entfernt - fehlende Werte bleiben als NaN
+    df.index.name = 'timestamp'
+    df.to_csv(f"Filtered_data/filtered_data_{id}_with_missing_values.csv")
 
 #run(raw_data_copy)
 #run_all_in_one(raw_data_copy)
 #anomaly(raw_data_copy)
 #count_building_id_and_anomalies(raw_data_copy)
-only_anomaly("Filtered_data/filtered_data_685.csv")
+only_anomaly("Filtered_data/filtered_data_685_with_missing_values.csv")
 #to_csv("filtered_data_1.txt")
 #stunden_im_jahr()
 #plot_one_id(raw_data_copy, 685)
@@ -423,3 +441,4 @@ only_anomaly("Filtered_data/filtered_data_685.csv")
 #anomalie_anteile_erstellen()
 #remove_anomaly_clusters('id118/Daten/filtered_data_118.csv', 'id118/Daten4', modus='zufällig')
 #fill_missing_timesteps("lead1.0-small.csv",254)
+#filter_id_out_with_missing_values(raw_data_copy, 685)
