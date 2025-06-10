@@ -83,33 +83,36 @@ def replace_anomalies_incrementally(df_anomalies, df_imputed, percentages=np.ara
 def run_nbeats_forecasting(df, building_id, percentage, timestamp_suffix, output_dir="id118neu"):
     """
     Führt die NBEATS-Vorhersage für ein DataFrame durch und speichert die Ergebnisse
+    Verwendet die EXAKT gleiche Konfiguration wie Ihr ursprünglicher NBEATS Code
     """
-    # Erstelle Darts TimeSeries
+    print(f"\n=== NBEATS Vorhersage für {percentage}% ersetzte Anomalien ===")
+    
+    # Erstelle Darts TimeSeries (EXAKT wie ursprünglich)
     series = TimeSeries.from_dataframe(df, "timestamp", "meter_reading")
-    series_original = series.copy()  
+    series_original = series.copy()
 
-    # Skaliere die Daten
+    # Skaliere die Daten (EXAKT wie ursprünglich)
     scaler = Scaler()
     series = scaler.fit_transform(series)
 
-    # Teile in Trainings- und Validierungsdaten
+    # Teile in Trainings- und Validierungsdaten (EXAKT wie ursprünglich)
     train, val = series.split_after(0.8)
     val_unscaled = scaler.inverse_transform(val)
 
-    # Früher Stopp für das Training
+    # Früher Stopp für das Training (EXAKT wie ursprünglich)
     early_stopping = EarlyStopping(
         monitor="val_loss", patience=10, mode="min"
     )
 
-    # Definiere das NBEATS-Modell
+    # Definiere das NBEATS-Modell (EXAKT wie ursprünglich)
     model = NBEATSModel(
         input_chunk_length=336,
-        output_chunk_length=48,
+        output_chunk_length=48,  # ZURÜCK zu 48h wie ursprünglich!
         random_state=42,
         pl_trainer_kwargs={"callbacks": [early_stopping]},
     )
 
-    # Trainiere das Modell
+    # Trainiere das Modell (EXAKT wie ursprünglich)
     model.fit(
         series=train,
         val_series=val,
@@ -117,7 +120,7 @@ def run_nbeats_forecasting(df, building_id, percentage, timestamp_suffix, output
         verbose=True
     )
 
-    # Erzeuge Vorhersagen
+    # Erzeuge Vorhersagen (EXAKT wie ursprünglich)
     forecast_scaled = model.historical_forecasts(
         series,
         start=0.8,                    
@@ -127,10 +130,10 @@ def run_nbeats_forecasting(df, building_id, percentage, timestamp_suffix, output
         verbose=True
     )
 
-    # Rücktransformation der Vorhersagen
+    # Rücktransformation der Vorhersagen (EXAKT wie ursprünglich)
     forecast = scaler.inverse_transform(forecast_scaled)
 
-    # Berechne Fehlermetriken
+    # Berechne Fehlermetriken (EXAKT wie ursprünglich)
     mae_val = mae(val_unscaled, forecast)
     mean_val = val_unscaled.values().mean()
     mae_percent = (mae_val / mean_val) * 100
@@ -144,22 +147,33 @@ def run_nbeats_forecasting(df, building_id, percentage, timestamp_suffix, output
     # Erstelle Plot
     fig, ax = plt.subplots(figsize=(16, 8))
     series_original.plot(label="Echte Werte", ax=ax, linewidth=0.5)
-    forecast.plot(label="Vorhersage", ax=ax, linewidth=0.5)
+    forecast.plot(label="NBEATS Vorhersage", ax=ax, linewidth=0.5)
     ax.legend()
     ax.set_xlabel("Zeit", fontsize=12)
     ax.set_ylabel("Messwerte", fontsize=12)
-    plt.title(f"ID{building_id} - {percentage}% Anomalien ersetzt - MAE: {mae_val:.4f}, RMSE: {rmse_val:.4f}, MAE%: {mae_percent:.2f}%")
+    plt.title(f"NBEATS - ID{building_id} - {percentage}% Anomalien ersetzt - MAE: {mae_val:.4f}, RMSE: {rmse_val:.4f}, MAE%: {mae_percent:.2f}%")
     
     # Erstelle Output-Verzeichnis, falls es nicht existiert
     os.makedirs(output_dir, exist_ok=True)
     
     # Speichere Plot
-    plt.savefig(f"{output_dir}/forecast_plot_id{building_id}_replaced{percentage}pct_{timestamp_suffix}.png")
+    plt.savefig(f"{output_dir}/nbeats_forecast_plot_id{building_id}_replaced{percentage}pct_{timestamp_suffix}.png")
     plt.close()
 
-    # Speichere Vorhersagedaten
-    forecast_df = forecast.pd_dataframe()
-    forecast_df.to_csv(f"{output_dir}/forecast_data_id{building_id}_replaced{percentage}pct_{timestamp_suffix}.csv", index=True)
+    # Speichere Vorhersagedaten (mit Fallback)
+    try:
+        forecast_df = forecast.pd_dataframe()
+    except AttributeError:
+        try:
+            forecast_df = forecast.to_pandas()
+        except AttributeError:
+            forecast_df = pd.DataFrame({
+                'timestamp': forecast.time_index,
+                'predicted_value': forecast.values().flatten()
+            })
+            forecast_df.set_index('timestamp', inplace=True)
+    
+    forecast_df.to_csv(f"{output_dir}/nbeats_forecast_data_id{building_id}_replaced{percentage}pct_{timestamp_suffix}.csv", index=True)
     
     return {
         'percentage': percentage,
@@ -169,10 +183,16 @@ def run_nbeats_forecasting(df, building_id, percentage, timestamp_suffix, output
     }
 
 def main():
+    print("=" * 70)
+    print("    NBEATS ANOMALIE-ANALYSE")
+    print("  (Historical Forecasts + 2-Tage Horizont wie ursprünglich)")
+    print("=" * 70)
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    file_with_anomalies = "id439neu/filtered_data_building_439_filled_mehr_1.csv"  # Pfad zur Datei mit Anomalien
-    file_with_imputations = "id439neu/imputed_meter_readings_439_CPI_mehr_1.csv"  # Pfad zur Datei mit imputierten Anomalien
+    file_with_anomalies = "id118/filtered_data_118.csv"  # Pfad zur Datei mit Anomalien
+    file_with_imputations = "id118/imputed_meter_readings_118_CPI.csv"  # Pfad zur Datei mit imputierten Anomalien
+    
+    print("Lade Daten...")
     df_anomalies = pd.read_csv(file_with_anomalies, parse_dates=["timestamp"])
     df_imputed = pd.read_csv(file_with_imputations, parse_dates=["timestamp"])
 
@@ -183,10 +203,13 @@ def main():
         return
     building_id = building_id_anomalies
 
-    output_dir = f"Forecast/ID{building_id}_Analysis_{timestamp}"
+    output_dir = f"Forecast/NBEATS_ID{building_id}_Analysis_{timestamp}"
     os.makedirs(output_dir, exist_ok=True)
+    
+    print("Analysiere Anomalie-Cluster...")
     partially_imputed_dataframes = replace_anomalies_incrementally(df_anomalies, df_imputed)
     anomaly_clusters = identify_anomaly_clusters(df_anomalies)
+    
     cluster_info = pd.DataFrame([
         {
             'cluster_id': cluster['cluster_id'],
@@ -200,33 +223,69 @@ def main():
     cluster_info.to_csv(f"{output_dir}/anomaly_clusters_info.csv", index=False)
     print(f"Identifizierte Anomalie-Cluster: {len(anomaly_clusters)}")
     print(f"Gesamtzahl der Anomalien: {df_anomalies['anomaly'].sum()}")
+    
+    print("\nStarte NBEATS Vorhersagen für verschiedene Anomalie-Anteile...")
     results = []
-    for percentage, df in partially_imputed_dataframes:
+    
+    for i, (percentage, df) in enumerate(partially_imputed_dataframes):
+        print(f"\nFortschritt: {i+1}/{len(partially_imputed_dataframes)} ({percentage}%)")
         result = run_nbeats_forecasting(df, building_id, percentage, timestamp, output_dir)
         results.append(result)
+    
+    # Speichere Ergebnisse
     results_df = pd.DataFrame(results)
-    results_df.to_csv(f"{output_dir}/forecast_metrics_summary.csv", index=False)
+    results_df.to_csv(f"{output_dir}/nbeats_forecast_metrics_summary.csv", index=False)
+    
+    # Erstelle Zusammenfassungsplot
+    print("\nErstelle Zusammenfassungsplots...")
     plt.figure(figsize=(12, 8))
     
     plt.subplot(2, 1, 1)
-    plt.plot(results_df['percentage'], results_df['mae'], marker='o', label='MAE')
-    plt.plot(results_df['percentage'], results_df['rmse'], marker='s', label='RMSE')
+    plt.plot(results_df['percentage'], results_df['mae'], marker='o', label='MAE', linewidth=2)
+    plt.plot(results_df['percentage'], results_df['rmse'], marker='s', label='RMSE', linewidth=2)
     plt.xlabel('Prozent ersetzter Anomalien')
     plt.ylabel('Fehlermetriken')
-    plt.title(f'Einfluss des Ersetzens von Anomalien auf die Vorhersagegenauigkeit - ID{building_id}')
-    plt.grid(True)
+    plt.title(f'NBEATS: Einfluss des Ersetzens von Anomalien auf die Vorhersagegenauigkeit - ID{building_id}')
+    plt.grid(True, alpha=0.3)
     plt.legend()
     
     plt.subplot(2, 1, 2)
-    plt.plot(results_df['percentage'], results_df['mae_percent'], marker='o', color='green')
+    plt.plot(results_df['percentage'], results_df['mae_percent'], marker='o', color='green', linewidth=2)
     plt.xlabel('Prozent ersetzter Anomalien')
     plt.ylabel('MAE in Prozent')
-    plt.grid(True)
+    plt.title('NBEATS: MAE% vs. Anomalie-Ersetzungsrate')
+    plt.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(f"{output_dir}/metrics_vs_replacement_percentage.png")
+    plt.savefig(f"{output_dir}/nbeats_metrics_vs_replacement_percentage.png", dpi=300, bbox_inches='tight')
+    plt.show()
     
-    print(f"Analyse abgeschlossen. Ergebnisse wurden in {output_dir} gespeichert.")
+    # Zusätzliche Analyse: Beste und schlechteste Performance
+    best_mae = results_df.loc[results_df['mae_percent'].idxmin()]
+    worst_mae = results_df.loc[results_df['mae_percent'].idxmax()]
+    
+    print(f"\n=== NBEATS ERGEBNISZUSAMMENFASSUNG ===")
+    print(f"Beste Performance:")
+    print(f"   Anomalie-Ersetzungsrate: {best_mae['percentage']}%")
+    print(f"   MAE%: {best_mae['mae_percent']:.2f}%")
+    print(f"   MAE: {best_mae['mae']:.4f}")
+    print(f"   RMSE: {best_mae['rmse']:.4f}")
+    
+    print(f"\nSchlechteste Performance:")
+    print(f"   Anomalie-Ersetzungsrate: {worst_mae['percentage']}%")
+    print(f"   MAE%: {worst_mae['mae_percent']:.2f}%")
+    print(f"   MAE: {worst_mae['mae']:.4f}")
+    print(f"   RMSE: {worst_mae['rmse']:.4f}")
+    
+    improvement = worst_mae['mae_percent'] - best_mae['mae_percent']
+    print(f"\nVerbesserung durch optimale Anomalie-Behandlung: {improvement:.2f} Prozentpunkte")
+    
+    print(f"\nAnalyse abgeschlossen. Ergebnisse wurden in {output_dir} gespeichert.")
+    print(f"Ausgabedateien:")
+    print(f"   - Einzelvorhersagen: nbeats_forecast_plot_*.png")
+    print(f"   - Zusammenfassung: nbeats_metrics_vs_replacement_percentage.png")
+    print(f"   - Metriken: nbeats_forecast_metrics_summary.csv")
+    print(f"   - Cluster-Info: anomaly_clusters_info.csv")
 
 if __name__ == "__main__":
     main()
