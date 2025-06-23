@@ -804,7 +804,7 @@ def create_template_comparison_plot(original_df, template_matches, max_compariso
 
 if __name__ == "__main__":
     # Passen Sie den Dateipfad an Ihre Daten an
-    file_path = "id118/filtered_data_118.csv" 
+    file_path = "id254/mit_missing_markierung_building_254_neu.csv" 
     
     # Führe die erweiterte Imputation durch
     main_enhanced(file_path)
